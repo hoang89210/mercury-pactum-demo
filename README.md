@@ -1,8 +1,5 @@
 # Mercury Pactum Demo - VPBank Hackathon 2025
 
-![VPBank Hackathon Banner](https://img.shields.com/badge/VPBank-Hackathon-2025-blue?style=flat-square&logo=aws)
-![AWS Serverless](https://img.shields.com/badge/AWS-Serverless-orange?style=flat-square&logo=aws)
-![License](https://img.shields.com/badge/License-MIT-green?style=flat-square)
 
 **Tự động hóa quy trình thế chấp BĐS với AI: OCR sổ đỏ, trích xuất dữ liệu, sinh hợp đồng.**
 
@@ -16,7 +13,8 @@ Mercury Pactum là giải pháp serverless AWS để tự động hóa quy trìn
 ## Demo Front-End
 - **Link Figma:** [Figma Prototype](https://dimly-love-31263713.figma.site/)
 - **Screenshot:**  
-  ![Figma Screenshot](figma-prototype-screenshot.png)
+![FE_UI02](https://github.com/user-attachments/assets/e68ede78-7600-482e-bfa2-4b8faa1d4a1d)
+
 
 Tính năng: Upload file, view progress dashboard, download draft.
 
@@ -24,7 +22,8 @@ Tính năng: Upload file, view progress dashboard, download draft.
 - **Mô tả:** Client-side (không server), upload ảnh CCCD → Quét QR → Trích xuất ID, tên, DOB, địa chỉ.
 - **Chạy demo:** Mở file `QR_CCCD.html` trong browser (Google Chrome).
 - **Screenshot:**  
-  ![OCR Demo Screenshot](demo-ocr-screenshot.png)
+ ![Screenshot_error](https://github.com/user-attachments/assets/f373dd46-2195-40a4-84a1-208f94fab89a)
+
 
 Hướng dẫn: Upload ảnh CCCD → Quét QR → Kết quả hiển thị ngay (ví dụ: ID: 001123456789, Tên: Nguyễn Văn A).
 
@@ -37,7 +36,7 @@ Hướng dẫn: Upload ảnh CCCD → Quét QR → Kết quả hiển thị ngay
   - Generate Draft.
 - SES notify.
 - **Diagram:**  
-  ![Architecture](architecture.png)  # Anh vẽ bằng draw.io và upload
+ 
 
 ## Team Mercury Pactum
 | Tên | Vai trò | Email |
