@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình Quét & Giải mã CCCD (Client-Side JSQR)</title>
+    <!-- Tải Tailwind CSS cho styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải jsQR library cho việc giải mã QR Code trên client-side -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.1.0/dist/jsQR.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f9;
+        }
+        .container-card {
+            max-width: 900px;
+        }
+        .output-box {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 120px;
+            font-size: 0.85rem;
+        }
+        /* Đảm bảo canvas được hiển thị chính giữa */
+        #image-canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container-card bg-white shadow-xl rounded-xl p-8 w-full">
+        <h1 class="text-3xl font-extrabold text-center mb-6 text-blue-700">
+            Hệ thống Quét & Giải mã CCCD (Client-Side)
+        </h1>
+        <p class="text-center text-gray-500 mb-8">
+            Giải mã mã QR trực tiếp trong trình duyệt bằng JavaScript (jsQR).
+        </p>
+
+        <!-- Khung chứa ảnh và Kết quả -->
+        <div class="flex flex-col lg:flex-row gap-8">
+
+            <!-- Cột trái: Tải ảnh và Hiển thị -->
+            <div class="lg:w-1/2 w-full">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Tải lên ảnh CCCD</h2>
+
+                <input type="file" id="image-input" accept="image/*" class="w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100" onchange="handleFileUpload()">
+
+                <!-- Khu vực hiển thị ảnh (đã thay thế <img> bằng <canvas>) -->
+                <div class="mt-4 border-2 border-gray-300 border-dashed rounded-lg bg-gray-100 flex items-center justify-center relative" style="height: 300px;">
+                    <canvas id="image-canvas" class="rounded-lg shadow-inner hidden"></canvas>
+                    <p id="placeholder-text" class="text-gray-500 p-4">
+                        QR Code sẽ hiển thị tại đây sau khi tải ảnh lên
+                    </p>
+                </div>
+            </div>
+
+            <!-- Cột phải: Kết quả -->
+            <div class="lg:w-1/2 w-full">
+                <h2 class="text-xl font-semibold mb-3 text-gray-700">2. Dữ liệu được giải mã (Client-Side)</h2>
+                <div id="loading-spinner" class="text-center p-4 hidden">
+                    <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" role="status"></div>
+                    <p class="text-blue-500 mt-2">Đang xử lý ảnh và giải mã Mã QR...</p>
+                </div>
+                <pre id="raw-output" class="output-box bg-gray-800 text-green-400 p-4 rounded-lg shadow-md overflow-auto font-mono">
+Vui lòng tải lên một tệp ảnh chứa mã QR CCCD.
+                </pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Khai báo các phần tử UI cần thiết
+        const canvas = document.getElementById('image-canvas');
+        const ctx = canvas.getContext('2d');
+        const rawOutput = document.getElementById('raw-output');
+        const placeholderText = document.getElementById('placeholder-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        /**
+         * Hiển thị thông báo trong Text widget.
+         * @param {string} message - Nội dung thông báo.
+         * @param {string} colorClass - Màu chữ (tailwind class).
+         */
+        function displayMessage(message, colorClass) {
+            rawOutput.className = `output-box p-4 rounded-lg shadow-md overflow-auto font-mono ${colorClass}`;
+            rawOutput.textContent = message;
+        }
+
+        /**
+         * Xử lý tệp ảnh được tải lên.
+         */
+        async function handleFileUpload() {
+            const input = document.getElementById('image-input');
+            const file = input.files[0];
+
+            if (!file) {
+                displayMessage("Đang chờ tệp ảnh...", "bg-gray-800 text-green-400");
+                canvas.classList.add('hidden');
+                placeholderText.classList.remove('hidden');
+                return;
+            }
+
+            displayMessage("Đang xử lý và giải mã...", "bg-gray-800 text-yellow-400");
+            loadingSpinner.classList.remove('hidden');
+
+            try {
+                const imageUrl = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = async () => {
+                    // 1. Hiển thị ảnh
+                    displayImageOnCanvas(img);
+
+                    // 2. Thực hiện giải mã
+                    const rawData = decodeQRCode(canvas, ctx); // jsQR là đồng bộ (synchronous)
+
+                    // 3. Hiển thị kết quả
+                    if (rawData) {
+                        const [resultDisplay] = processRawData(rawData);
+                        displayMessage(resultDisplay, "bg-gray-800 text-green-400");
+                    } else {
+                        displayMessage(
+                            "LỖI: Không tìm thấy mã QR. Vui lòng kiểm tra lại ảnh hoặc đảm bảo mã QR rõ nét.",
+                            "bg-red-800 text-white"
+                        );
+                    }
+                    URL.revokeObjectURL(imageUrl); // Giải phóng bộ nhớ
+                };
+                img.src = imageUrl;
+
+            } catch (error) {
+                console.error("Lỗi trong quá trình xử lý tệp:", error);
+                displayMessage(`LỖI không xác định: ${error.message}`, "bg-red-800 text-white");
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Hiển thị ảnh trên canvas với kích thước giới hạn.
+         * @param {HTMLImageElement} img - Đối tượng ảnh.
+         */
+        function displayImageOnCanvas(img) {
+            const maxWidth = 400;
+            const maxHeight = 300; // Phù hợp với kích thước khung UI
+
+            let width = img.width;
+            let height = img.height;
+
+            // Tính toán kích thước mới để fit vào khung
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+            }
+
+            // Đặt kích thước canvas
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+            canvas.width = img.width; // Sử dụng kích thước pixel gốc cho ctx
+            canvas.height = img.height;
+
+            // Vẽ ảnh lên canvas ở kích thước pixel gốc
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Sau khi vẽ, đặt lại kích thước hiển thị (CSS) để fit vào khung
+            canvas.style.width = 'auto';
+            canvas.style.height = 'auto';
+
+            canvas.classList.remove('hidden');
+            placeholderText.classList.add('hidden');
+        }
+
+        /**
+         * Giải mã mã QR từ dữ liệu trên Canvas bằng jsQR.
+         * @param {HTMLCanvasElement} canvas - Canvas chứa ảnh.
+         * @param {CanvasRenderingContext2D} ctx - Context của canvas.
+         * @returns {string|null} Dữ liệu thô của QR Code hoặc null.
+         */
+        function decodeQRCode(canvas, ctx) {
+            // Lấy dữ liệu pixel ở kích thước gốc của canvas
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // jsQR tự động xử lý các bước tiền xử lý cơ bản
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (code) {
+                // Tùy chọn: Vẽ hộp bao quanh mã QR để người dùng nhìn thấy
+                drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF0000");
+                drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF0000");
+                drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF0000");
+                drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF0000");
+
+                return code.data;
+            }
+            return null;
+        }
+
+        // Hàm phụ trợ để vẽ hộp bao quanh QR
+        function drawLine(begin, end, color) {
+            ctx.beginPath();
+            ctx.moveTo(begin.x, begin.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = color;
+            ctx.stroke();
+        }
+
+
+        /**
+         * Phân tích và định dạng dữ liệu thô từ mã QR CCCD.
+         * Hàm này được chuyển đổi từ logic Python của người dùng.
+         * @param {string} raw_data - Dữ liệu thô được giải mã.
+         * @returns {[string, string|null]} [Dữ liệu hiển thị, Dữ liệu thô]
+         */
+        function processRawData(raw_data) {
+            // Định dạng dữ liệu: Ký tự phân tách là '|'
+            const parts = raw_data.split('|');
+
+            if (parts.length < 6) {
+                return ["Lỗi: Dữ liệu giải mã không đủ trường theo định dạng CCCD chuẩn.", raw_data];
+            }
+
+            // Ánh xạ các trường dữ liệu CCCD
+            const dataMap = {
+                "Mã số CCCD/CMND": parts[0],
+                "Số Cũ (CMND 9 số)": parts[1],
+                "Họ và tên": parts[2],
+                "Ngày sinh (YYYYMMDD)": parts[3],
+                "Giới tính": parts[4],
+                "Quốc tịch": parts[5],
+            };
+
+            // Địa chỉ
+            if (parts.length > 6) {
+                dataMap["Địa chỉ"] = parts.slice(6).join('|');
+            } else {
+                dataMap["Địa chỉ"] = "Không tìm thấy hoặc không có trong QR Code";
+            }
+
+            // Định dạng lại ngày sinh
+            try {
+                const dobRaw = dataMap["Ngày sinh (YYYYMMDD)"];
+                if (dobRaw.length === 8 && /^\d+$/.test(dobRaw)) {
+                    // Định dạng YYYYMMDD -> DD/MM/YYYY (Theo chuẩn Việt Nam)
+                    dataMap["Ngày sinh (Đã định dạng)"] = `${dobRaw.substring(0, 2)}/${dobRaw.substring(2, 4)}/${dobRaw.substring(4, 8)}`;
+                }
+            } catch (e) {
+                // Bỏ qua lỗi định dạng ngày sinh
+            }
+
+            // Xây dựng kết quả hiển thị
+            let resultDisplay = "\n============================================\n";
+            resultDisplay += "      KẾT QUẢ PHÂN TÍCH MÃ QR CCCD\n";
+            resultDisplay += "============================================\n";
+
+            // Hiển thị các trường dữ liệu đã phân tích
+            for (const key in dataMap) {
+                if (Object.hasOwnProperty.call(dataMap, key)) {
+                    if (key === "Ngày sinh (YYYYMMDD)" && dataMap.hasOwnProperty("Ngày sinh (Đã định dạng)")) {
+                        continue;
+                    }
+                    // Cố gắng căn chỉnh bằng khoảng trắng
+                    resultDisplay += `${key.padEnd(25)}: ${dataMap[key]}\n`;
+                }
+            }
+
+            if (dataMap.hasOwnProperty("Ngày sinh (Đã định dạng)")) {
+                resultDisplay += `Ngày sinh (Đã định dạng): ${dataMap['Ngày sinh (Đã định dạng)']}\n`;
+            }
+
+            resultDisplay += "============================================\n";
+            resultDisplay += `Dữ liệu thô:\n${raw_data}`;
+            resultDisplay += "\n============================================\n";
+
+            return [resultDisplay, raw_data];
+        }
+
+        // Khởi tạo trạng thái ban đầu
+        window.onload = () => {
+             displayMessage("Vui lòng tải lên một tệp ảnh chứa mã QR CCCD.", "bg-gray-800 text-yellow-400");
+        };
+
+    </script>
+
+</body>
+</html>
