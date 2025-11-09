@@ -1,0 +1,54 @@
+import boto3
+import json
+
+s3 = boto3.client('s3')
+bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')  # Bedrock chỉ ở us-east-1
+
+def lambda_handler(event, context):
+    bucket = event['bucket']
+    extracted = event.get('extracted', {})
+    input_key = event['input_key']
+    
+    # Tạo prompt
+    prompt = f"""
+Tạo bản nháp hợp đồng thế chấp bất động sản bằng tiếng Việt, định dạng rõ ràng, chuyên nghiệp.
+
+Dữ liệu:
+- Chủ sở hữu: {extracted.get('chu_so_huu', 'N/A')}
+- Địa chỉ BĐS: {extracted.get('dia_chi_bds', 'N/A')}
+- Diện tích: {extracted.get('dien_tich', 'N/A')} m²
+- Ngày ký: 07/11/2025
+
+Bắt đầu bằng: "HỢP ĐỒNG THẾ CHẤP BẤT ĐỘNG SẢN"
+Kết thúc bằng: "Hợp đồng có hiệu lực ngay khi ký."
+"""
+    
+    try:
+        # Gọi Bedrock
+        response = bedrock.invoke_model(
+            modelId='anthropic.claude-3-sonnet-20240229-v1:0',
+            body=json.dumps({
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 1000,
+                "messages": [{"role": "user", "content": prompt}]
+            })
+        )
+        
+        result = json.loads(response['body'].read())
+        draft_text = result['content'][0]['text']
+        
+        # Lưu vào S3
+        filename = input_key.split('/')[-1].rsplit('.', 1)[0]
+        draft_key = f"output-contracts/draft_{filename}.txt"
+        
+        s3.put_object(
+            Bucket=bucket,
+            Key=draft_key,
+            Body=draft_text,
+            ContentType='text/plain; charset=utf-8'
+        )
+        
+        return {**event, 'draft_key': draft_key, 'status': 'COMPLETED'}
+        
+    except Exception as e:
+        raise Exception(f"Bedrock error: {str(e)}")
