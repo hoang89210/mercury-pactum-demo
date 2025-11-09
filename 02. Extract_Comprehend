@@ -1,0 +1,42 @@
+import boto3
+import json
+
+s3 = boto3.client('s3')
+comprehend = boto3.client('comprehend')
+
+def get_text_from_blocks(blocks):
+    text = ""
+    for block in blocks:
+        if block['BlockType'] == 'LINE':
+            text += block['Text'] + " "
+    return text
+
+def lambda_handler(event, context):
+    bucket = event['bucket']
+    ocr_key = event['ocr_key']
+    
+    ocr_json = s3.get_object(Bucket=bucket, Key=ocr_key)['Body'].read()
+    ocr_data = json.loads(ocr_json)
+    full_text = get_text_from_blocks(ocr_data['Blocks'])
+    
+    # Dùng Comprehend để trích xuất
+    entities = comprehend.detect_entities(Text=full_text[:5000], LanguageCode='en')['Entities']
+    
+    extracted = {
+        'dia_chi_bds': '',
+        'chu_so_huu': '',
+        'dien_tich': ''
+    }
+    
+    for e in entities:
+        if e['Type'] == 'LOCATION':
+            extracted['dia_chi_bds'] = e['Text']
+        elif e['Type'] == 'PERSON':
+            extracted['chu_so_huu'] = e['Text']
+        elif 'QUANTITY' in e['Type'] and 'm²' in e['Text']:
+            extracted['dien_tich'] = e['Text']
+    
+    output_key = ocr_key.replace('output-ocr/', 'output-extracted/extracted_')
+    s3.put_object(Bucket=bucket, Key=output_key, Body=json.dumps(extracted))
+    
+    return {**event, 'extracted': extracted, 'extracted_key': output_key}
