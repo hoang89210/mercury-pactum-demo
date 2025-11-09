@@ -1,0 +1,36 @@
+import boto3
+import json
+
+s3 = boto3.client('s3')
+textract = boto3.client('textract')
+
+def lambda_handler(event, context):
+    # NHẬN INPUT TỪ STEP FUNCTIONS (KHÔNG TỪ S3 EVENT)
+    bucket = event['bucket']
+    key = event['input_key']
+    
+    if not key.startswith('input-docs/'):
+        raise Exception("File không nằm trong input-docs/")
+    
+    try:
+        response = textract.analyze_document(
+            Document={'S3Object': {'Bucket': bucket, 'Name': key}},
+            FeatureTypes=['FORMS', 'TABLES']
+        )
+    except Exception as e:
+        raise Exception(f"Textract error: {str(e)}")
+    
+    output_key = key.replace('input-docs/', 'output-ocr/ocr_')
+    s3.put_object(
+        Bucket=bucket,
+        Key=output_key,
+        Body=json.dumps(response),
+        ContentType='application/json'
+    )
+    
+    return {
+        'bucket': bucket,
+        'input_key': key,
+        'ocr_key': output_key,
+        'status': 'ocr_completed'
+    }
