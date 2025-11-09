@@ -1,0 +1,13 @@
+import boto3
+import json
+
+rekognition = boto3.client('rekognition')
+
+def lambda_handler(event, context):
+    # Giả lập verify (có thể mở rộng sau)
+    verification = {
+        'status': 'VERIFIED',
+        'confidence': 98.5,
+        'tampering_detected': False
+    }
+    return {**event, 'verification': verification}
