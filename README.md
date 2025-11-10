@@ -24,6 +24,7 @@ Tính năng: Upload file, view progress dashboard, download draft.
 - **Screenshot:**  
  ![Screenshot_error](https://github.com/user-attachments/assets/f373dd46-2195-40a4-84a1-208f94fab89a)
 
+![OCR_Screen_Right](https://github.com/user-attachments/assets/33f917fa-42f9-4286-a1ef-7d54b1f5d758)
 
 Hướng dẫn: Upload ảnh CCCD → Quét QR → Kết quả hiển thị ngay (ví dụ: ID: 001123456789, Tên: Nguyễn Văn A).
 
