@@ -45,7 +45,7 @@ Hướng dẫn: Upload ảnh CCCD → Quét QR → Kết quả hiển thị ngay
 | Trần Trọng Hoàng | Leader / SA | hoang89210@gmail.com |
 | Phạm Minh Quang | PM | (email) |
 | Phạm Trung Hiếu | DS | (email) |
-| Hoàng Hữu Hùng | DE | (email) |
+| Hoàng Hữu Hướng | DE | (email) |
 | La Linh | Front-end | (email) |
 
 ## Installation & Usage
